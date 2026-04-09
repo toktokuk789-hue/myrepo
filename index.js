@@ -1,4 +1,6 @@
+require('dotenv').config();
 const express = require('express');
+const mongoose = require('mongoose');
 const QRCode = require('qrcode');
 const multer = require('multer');
 const fs = require('fs');
@@ -57,18 +59,33 @@ function formatDate(dateStr) {
   return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-const DB_FILE = './data/db.json';
-fs.mkdirSync('./data', { recursive: true });
-if (!fs.existsSync(DB_FILE)) fs.writeFileSync(DB_FILE, JSON.stringify([]));
+// =============================
+// MONGODB CONNECTION
+// =============================
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => console.log('Connected to MongoDB Atlas'))
+  .catch(err => console.error('MongoDB Connection Error:', err));
 
-function getDB() {
-  return JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
-}
-function saveToDB(entry) {
-  const db = getDB();
-  db.push(entry);
-  fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
-}
+const visaSchema = new mongoose.Schema({
+  visaRefNumber: String,
+  passportNumber: String,
+  surname: String,
+  givenNames: String,
+  dob: String,
+  nationality: String,
+  visaCategory: String,
+  visaSubCategory: String,
+  applicationType: String,
+  visaGrantDate: String,
+  travelDocCountry: String,
+  stayFacility: String,
+  visaStartDate: String,
+  visaEndDate: String,
+  visaDuration: String,
+  photo: String
+}, { timestamps: true });
+
+const Visa = mongoose.model('Visa', visaSchema);
 
 function requireAuth(req, res, next) {
   const b64auth = (req.headers.authorization || '').split(' ')[1] || '';
@@ -256,15 +273,23 @@ app.get('/', (req, res) => {
 </html>`);
 });
 
-app.post('/verify-search', (req, res) => {
+app.post('/verify-search', async (req, res) => {
   const { refNum, passportNum } = req.body;
-  const db = getDB();
-  const match = db.find(v => v.visaRefNumber === refNum && v.passportNumber === passportNum);
   
-  if (match) {
-    const params = new URLSearchParams(match);
-    res.redirect('/verify?' + params.toString());
-  } else {
+  try {
+    const match = await Visa.findOne({ 
+      visaRefNumber: refNum, 
+      passportNumber: passportNum 
+    });
+    
+    if (match) {
+      const params = new URLSearchParams(match.toObject());
+      res.redirect('/verify?' + params.toString());
+    } else {
+      res.redirect('https://visa.nadra.gov.pk/verify/');
+    }
+  } catch (error) {
+    console.error(error);
     res.redirect('https://visa.nadra.gov.pk/verify/');
   }
 });
@@ -362,16 +387,22 @@ app.post('/generate', requireAuth, upload.single('photo'), async (req, res) => {
     const photoFile = req.file ? req.file.filename : '';
     d.photo = photoFile;
 
-    const db = getDB();
-    const existing = db.find(v => v.visaRefNumber === d.visaRefNumber && v.passportNumber === d.passportNumber);
-    
-    if (existing) {
-      // Record already in DB, just use existing data for display (Reprint mode)
-      d = existing;
+    // Save or update in MongoDB
+    let visaData = await Visa.findOne({ 
+      visaRefNumber: d.visaRefNumber, 
+      passportNumber: d.passportNumber 
+    });
+
+    if (visaData) {
+      // Update existing record with new photo if provided
+      if (photoFile) visaData.photo = photoFile;
+      await visaData.save();
     } else {
-      // New record, save it
-      saveToDB(d);
+      // Create new record
+      visaData = await Visa.create(d);
     }
+    
+    d = visaData.toObject();
 
     // Simplified QR URL to make the QR code scan faster (less dense)
     const qrParams = new URLSearchParams({ 
@@ -543,14 +574,20 @@ app.post('/generate', requireAuth, upload.single('photo'), async (req, res) => {
 // =============================
 // GET /verify — VERIFICATION PAGE (NADRA Mobile Portal Replica)
 // =============================
-app.get('/verify', (req, res) => {
+app.get('/verify', async (req, res) => {
   let d = req.query;
 
   // If we only have Ref/Pass (from QR code), look up full details in DB
   if (d.ref && d.pass && !d.visaCategory) {
-    const db = getDB();
-    const match = db.find(v => v.visaRefNumber === d.ref && v.passportNumber === d.pass);
-    if (match) d = match;
+    try {
+      const match = await Visa.findOne({ 
+        visaRefNumber: d.ref, 
+        passportNumber: d.pass 
+      });
+      if (match) d = match.toObject();
+    } catch (err) {
+      console.error(err);
+    }
   }
 
   res.send(`<!DOCTYPE html>
