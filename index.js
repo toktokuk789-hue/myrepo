@@ -692,6 +692,20 @@ app.get('/verify', async (req, res) => {
       text-align: center; font-size: 0.65rem; color: #aaa; padding: 16px 12px 24px;
       line-height: 1.5;
     }
+
+    /* ---- MOBILE REFINEMENTS ---- */
+    @media (max-width: 480px) {
+      .topbar { padding: 8px 12px; }
+      .topbar img { height: 48px; }
+      .blue-bar { margin: 15px 12px 0; }
+      .card { margin: 0 12px 30px; }
+      .ref-label { font-size: 1.15rem; }
+      .ref-num { font-size: 1.6rem; margin: 0 10px; word-break: break-all; }
+      .val-normal, .val-light { font-size: 0.95rem; }
+      .photo-area img { max-width: 160px; margin-bottom: 20px; }
+      .back-btn { width: calc(100% - 24px); font-size: 0.95rem; }
+    }
+
   </style>
 </head>
 <body>
