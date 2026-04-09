@@ -733,10 +733,13 @@ app.get('/verify', async (req, res) => {
       <div class="ref-num">${d.visaRefNumber || ''}</div>
     </div>
 
-  <!-- PHOTO -->
-<div class="photo-area">
-  ${d.photo ? `<img src="${d.photo}" alt="Photo">` : ''}
-</div>      <div class="lbl-upper">NAME</div>
+    <!-- PHOTO -->
+    <div class="photo-area">
+      ${d.photo ? `<img src="${d.photo}" alt="Photo">` : ''}
+    </div>
+
+    <div class="field">
+      <div class="lbl-upper">NAME</div>
       <div class="val-normal">${d.surname || ''} &nbsp;&nbsp; ${d.givenNames || ''}</div>
     </div>
 
