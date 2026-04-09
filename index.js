@@ -121,8 +121,8 @@ app.get('/', (req, res) => {
     body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
     
     /* TOP NAV */
-    .top-header { background: #fff; border-bottom: 1px solid var(--border); padding: 15px 40px; display: flex; justify-content: space-between; align-items: center; }
-    .top-header img { height: 60px; }
+    .top-header { background: #fff; padding: 15px 20px; text-align: left; border-bottom: 1px solid var(--border); }
+    .top-header img { height: 50px; width: auto; object-fit: contain; }
     
     /* BREADCRUMB */
     .breadcrumb-bar { background: #f1f5f9; padding: 12px 40px; border-bottom: 1px solid var(--border); }
@@ -310,7 +310,7 @@ app.get('/admin-panel', requireAuth, (req, res) => {
     .container { max-width: 800px; margin: 0 auto; background: #fff; padding: 30px 35px; border-radius: 6px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
     h1 { font-family: Georgia, serif; color: #1a5c38; font-size: 1.4rem; margin: 0; }
     .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #1a5c38; padding-bottom: 15px; margin-bottom: 25px; }
-    .header img { height: 60px; }
+    .header img { height: 60px; width: auto; object-fit: contain; }
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
     .full-width { grid-column: span 2; }
     .form-group { display: flex; flex-direction: column; }
@@ -445,7 +445,7 @@ app.post('/generate', requireAuth, upload.single('photo'), async (req, res) => {
       padding-bottom: 10px; border-bottom: 3px solid #1a5c38; margin-bottom: 18px;
     }
     .doc-header-left { display: flex; align-items: center; }
-    .doc-header-left img { height: 70px; margin-right: 10px; }
+    .doc-header-left img { height: 70px; width: auto; object-fit: contain; margin-right: 10px; }
     .doc-header-left .h-text { font-size: 0.6rem; color: #1a5c38; font-weight: bold; text-transform: uppercase; line-height: 1.5; }
     .doc-header h1 { font-size: 1.3rem; color: #777; text-transform: uppercase; font-weight: bold; letter-spacing: 0.08em; margin-top: 20px; }
 
@@ -608,7 +608,7 @@ app.get('/verify', async (req, res) => {
       display: flex; justify-content: space-between; align-items: center;
       padding: 10px 16px; margin: 0 auto;
     }
-    .topbar img { height: 58px; }
+    .topbar img { height: 58px; width: auto; object-fit: contain; }
     .hamburger {
       background: none; border: none; outline: none; cursor: pointer;
       font-size: 2.2rem; color: #1a6faf; padding: 4px 0; line-height: 1; font-weight: 300;
