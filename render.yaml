@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: visa-nadra-gov
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: BASE_URL
+        value: https://visa-nadra-gov.onrender.com
+      - key: MONGODB_URI
+        sync: false # Render will ask you for this value manually in the dashboard for safety
