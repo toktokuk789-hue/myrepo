@@ -410,9 +410,9 @@ app.post('/generate', requireAuth, upload.single('photo'), async (req, res) => {
       pass: d.passportNumber 
     });
     
-    const ipAddress = getLocalIp();
-    const port = req.socket.localPort || 3000;
-    const verifyUrl = 'http://' + ipAddress + ':' + port + '/verify?' + qrParams.toString();
+    // Determine the base URL (Use Render domain in production, local IP for testing)
+    const baseUrl = process.env.BASE_URL || `http://${getLocalIp()}:${req.socket.localPort || 3000}`;
+    const verifyUrl = `${baseUrl}/verify?${qrParams.toString()}`;
     const qrDataUrl = await QRCode.toDataURL(verifyUrl, { width: 300, margin: 2, errorCorrectionLevel: 'M' });
 
     const mrz = buildMRZ(d);
