@@ -33,10 +33,8 @@ app.use(express.static('public'));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-const storage = multer.diskStorage({
-  destination: './public/uploads/',
-  filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname))
-});
+// Use memory storage for photos to convert them to Base64 (Atlas storage)
+const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 function buildMRZ(d) {
@@ -384,8 +382,13 @@ app.get('/admin-panel', requireAuth, (req, res) => {
 app.post('/generate', requireAuth, upload.single('photo'), async (req, res) => {
   try {
     let d = req.body;
-    const photoFile = req.file ? req.file.filename : '';
-    d.photo = photoFile;
+    
+    // Convert photo to Base64 for permanent MongoDB storage
+    if (req.file) {
+      const b64 = req.file.buffer.toString('base64');
+      const mimetype = req.file.mimetype;
+      d.photo = `data:${mimetype};base64,${b64}`;
+    }
 
     // Save or update in MongoDB
     let visaData = await Visa.findOne({ 
@@ -395,7 +398,7 @@ app.post('/generate', requireAuth, upload.single('photo'), async (req, res) => {
 
     if (visaData) {
       // Update existing record with new photo if provided
-      if (photoFile) visaData.photo = photoFile;
+      if (d.photo) visaData.photo = d.photo;
       await visaData.save();
     } else {
       // Create new record
@@ -410,8 +413,8 @@ app.post('/generate', requireAuth, upload.single('photo'), async (req, res) => {
       pass: d.passportNumber 
     });
     
-    // Determine the base URL (Use Render domain in production, local IP for testing)
-    const baseUrl = process.env.BASE_URL || `http://${getLocalIp()}:${req.socket.localPort || 3000}`;
+    // Determine the base URL (Prioritize Render's automatic external URL)
+    const baseUrl = process.env.RENDER_EXTERNAL_URL || process.env.BASE_URL || `http://${getLocalIp()}:${req.socket.localPort || 3000}`;
     const verifyUrl = `${baseUrl}/verify?${qrParams.toString()}`;
     const qrDataUrl = await QRCode.toDataURL(verifyUrl, { width: 300, margin: 2, errorCorrectionLevel: 'M' });
 
@@ -511,7 +514,7 @@ app.post('/generate', requireAuth, upload.single('photo'), async (req, res) => {
 
     <div class="photo-qr">
       <div class="photo-box">
-        <img src="${photoFile ? '/uploads/' + photoFile : ''}" alt="Photo">
+        <img src="${d.photo || ''}" alt="Photo">
         <div class="pname">${d.surname} ${d.givenNames}</div>
       </div>
       <div class="qr-box">
@@ -661,7 +664,8 @@ app.get('/verify', async (req, res) => {
     }
     .photo-area img {
       max-width: 190px; width: 100%; height: auto; max-height: 240px;
-      object-fit: contain; display: block; margin: 0 auto 25px;
+      object-fit: cover; display: block; margin: 0 auto 25px; border-radius: 4px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 2px solid #fff;
     }
 
     /* ---- FIELD ---- */
@@ -729,9 +733,10 @@ app.get('/verify', async (req, res) => {
       <div class="ref-num">${d.visaRefNumber || ''}</div>
     </div>
 
-    <div class="photo-area">
-      ${d.photo ? '<img src="/uploads/' + d.photo + '" alt="Photo">' : ''}
-      <div class="lbl-upper">NAME</div>
+  <!-- PHOTO -->
+<div class="photo-area">
+  ${d.photo ? `<img src="${d.photo}" alt="Photo">` : ''}
+</div>      <div class="lbl-upper">NAME</div>
       <div class="val-normal">${d.surname || ''} &nbsp;&nbsp; ${d.givenNames || ''}</div>
     </div>
 
