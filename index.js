@@ -37,6 +37,7 @@ function getLocalIp() {
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+app.set('trust proxy', 1); // Required for secure cookies on Render proxy
 
 app.use(express.static('public'));
 app.use(express.urlencoded({ extended: true }));
@@ -44,14 +45,17 @@ app.use(express.json());
 
 app.use(session({
   secret: process.env.SESSION_SECRET || 'pakvisa-default-secret-2026',
-  resave: false,
-  saveUninitialized: false,
+  resave: true,
+  saveUninitialized: true,
   store: MongoStore.create({
     mongoUrl: process.env.MONGODB_URI,
     collectionName: 'sessions',
-    ttl: 14 * 24 * 60 * 60 // 14 days
+    ttl: 14 * 24 * 60 * 60
   }),
-  cookie: { secure: process.env.NODE_ENV === 'production' }
+  cookie: { 
+    secure: true, // Render provides HTTPS, so we can always use secure cookies
+    sameSite: 'lax' 
+  }
 }));
 
 // Use memory storage for photos to convert them to Base64 (Atlas storage)
