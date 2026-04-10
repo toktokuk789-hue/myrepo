@@ -47,10 +47,9 @@ app.use(session({
   saveUninitialized: true
 }));
 
-const Visa = mongoose.model('Visa', visaSchema);
-
-mongoose.connection.on('connected', () => console.log('✅ MongoDB Cloud Connected'));
-mongoose.connection.on('error', (err) => console.error('❌ MongoDB Error:', err));
+// Use memory storage for photos to convert them to Base64 (Atlas storage)
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
 
 function buildMRZ(d) {
   const surname = (d.surname || '').toUpperCase().replace(/[\s-]/g, '<');
@@ -76,8 +75,11 @@ function formatDate(dateStr) {
 // MONGODB CONNECTION
 // =============================
 mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('Connected to MongoDB Atlas'))
-  .catch(err => console.error('MongoDB Connection Error:', err));
+  .then(() => console.log('✅ Connected to MongoDB Atlas'))
+  .catch(err => console.error('❌ MongoDB Connection Error:', err));
+
+mongoose.connection.on('error', err => console.error('❌ MongoDB Connection Error:', err));
+mongoose.connection.on('connected', () => console.log('✅ MongoDB Cloud Connected'));
 
 const visaSchema = new mongoose.Schema({
   visaRefNumber: { type: String, index: true },
