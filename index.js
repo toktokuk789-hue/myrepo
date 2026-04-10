@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const session = require('express-session');
 const QRCode = require('qrcode');
 const multer = require('multer');
+const MongoStore = require('connect-mongo');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -44,7 +45,13 @@ app.use(express.json());
 app.use(session({
   secret: process.env.SESSION_SECRET || 'pakvisa-default-secret-2026',
   resave: false,
-  saveUninitialized: true
+  saveUninitialized: false,
+  store: MongoStore.create({
+    mongoUrl: process.env.MONGODB_URI,
+    collectionName: 'sessions',
+    ttl: 14 * 24 * 60 * 60 // 14 days
+  }),
+  cookie: { secure: process.env.NODE_ENV === 'production' }
 }));
 
 // Use memory storage for photos to convert them to Base64 (Atlas storage)
