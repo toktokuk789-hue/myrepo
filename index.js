@@ -325,7 +325,10 @@ app.post('/verify-search', async (req, res) => {
     });
     
     if (match) {
-      const params = new URLSearchParams(match.toObject());
+      const params = new URLSearchParams({ 
+        ref: match.visaRefNumber, 
+        pass: match.passportNumber 
+      });
       res.redirect('/verify?' + params.toString());
     } else {
       res.redirect('https://visa.nadra.gov.pk/verify/');
