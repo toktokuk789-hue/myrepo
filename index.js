@@ -316,9 +316,12 @@ app.post('/verify-search', async (req, res) => {
   }
 
   try {
+    const cleanRef = (refNum || '').trim().toUpperCase();
+    const cleanPass = (passportNum || '').trim().toUpperCase();
+
     const match = await Visa.findOne({ 
-      visaRefNumber: refNum, 
-      passportNumber: passportNum 
+      visaRefNumber: cleanRef, 
+      passportNumber: cleanPass 
     });
     
     if (match) {
@@ -583,9 +586,12 @@ app.get('/verify', async (req, res) => {
   // If we only have Ref/Pass (from QR code), look up full details in DB
   if (d.ref && d.pass && !d.visaCategory) {
     try {
+      const cleanRef = (d.ref || '').trim().toUpperCase();
+      const cleanPass = (d.pass || '').trim().toUpperCase();
+
       const match = await Visa.findOne({ 
-        visaRefNumber: d.ref, 
-        passportNumber: d.pass 
+        visaRefNumber: cleanRef, 
+        passportNumber: cleanPass 
       });
       if (match) d = match.toObject();
     } catch (err) {
