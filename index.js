@@ -423,7 +423,6 @@ app.get('/admin-panel', requireAuth, (req, res) => {
   </div>
 </body>
 </html>`);
-</html>`);
 });
 
 // =============================
