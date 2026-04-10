@@ -126,7 +126,7 @@ app.get('/', (req, res) => {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Verification Portal - PakVisa</title>
-  <link rel="icon" type="image/png" href="/pakistan-crest.png">
+  <link rel="icon" type="image/png" href="/custom-icon.png">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
   <style>
@@ -332,7 +332,7 @@ app.get('/admin-panel', requireAuth, (req, res) => {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PakVisa Grant Notice Generator</title>
-  <link rel="icon" type="image/png" href="/pakistan-crest.png">
+  <link rel="icon" type="image/png" href="/custom-icon.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
   <style>
     :root { --primary: #0c3823; --secondary: #1a5c38; --bg: #f4f6f8; }
@@ -457,6 +457,7 @@ app.post('/generate', requireAuth, upload.single('photo'), async (req, res) => {
 <head>
   <meta charset="UTF-8">
   <title>Visa Grant Notice - ${d.givenNames} ${d.surname}</title>
+  <link rel="icon" type="image/png" href="/custom-icon.png">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: Arial, Helvetica, sans-serif; background: #d0d0d0; padding: 20px; color: #222; }
@@ -586,7 +587,7 @@ app.get('/verify', async (req, res) => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="icon" type="image/png" href="/pakistan-crest.png">
+  <link rel="icon" type="image/png" href="/custom-icon.png">
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
