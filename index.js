@@ -123,7 +123,9 @@ app.get('/', (req, res) => {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Verification Portal - PakVisa</title>
+  <link rel="icon" type="image/png" href="/pakvisa-logo.png">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
   <style>
     :root {
       --primary: #0c3823;
@@ -197,6 +199,7 @@ app.get('/', (req, res) => {
     .site-footer { margin-top: 80px; background: #1e293b; color: #94a3b8; padding: 40px 20px; font-size: 0.85rem; text-align: center; }
     .site-footer strong { color: #f1f5f9; display: block; margin-bottom: 8px; }
 
+    .form-group label i { margin-right: 8px; color: var(--accent); font-size: 0.9rem; }
   </style>
 </head>
 <body>
@@ -236,15 +239,15 @@ app.get('/', (req, res) => {
         ${error === 'captcha' ? `<div class="error-alert">Invalid CAPTCHA code. Please try again.</div>` : ''}
         <div class="grid-form">
           <div class="form-group">
-            <label>Visa Reference Number</label>
+            <label><i class="fa-solid fa-file-signature"></i> Visa Reference Number</label>
             <input type="text" name="refNum" class="form-control" placeholder="ABC-12345678" required>
           </div>
           <div class="form-group">
-            <label>Passport Number</label>
+            <label><i class="fa-solid fa-passport"></i> Passport Number</label>
             <input type="text" name="passportNum" class="form-control" placeholder="PXXXXXXXX" required>
           </div>
           <div class="form-group">
-            <label>Passport Country</label>
+            <label><i class="fa-solid fa-earth-asia"></i> Passport Country</label>
             <select name="country" class="form-control">
               <option value="">Select Country</option>
               <option>Afghanistan</option><option>Australia</option><option>Canada</option>
@@ -252,7 +255,7 @@ app.get('/', (req, res) => {
             </select>
           </div>
           <div class="form-group">
-            <label>Verification Type</label>
+            <label><i class="fa-solid fa-list-check"></i> Verification Type</label>
             <select name="type" class="form-control">
               <option>Visa Grant Notice</option>
               <option>Electronic Travel Authorization (ETA)</option>
@@ -262,7 +265,7 @@ app.get('/', (req, res) => {
 
         <div class="captcha-container">
           <div class="captcha-box">
-            <label style="display:block; font-weight:600; font-size:0.88rem; margin-bottom:8px; color:var(--secondary);">CAPTCHA</label>
+            <label style="display:block; font-weight:600; font-size:0.88rem; margin-bottom:8px; color:var(--secondary);"><i class="fa-solid fa-shield-halved"></i> CAPTCHA</label>
             <input type="text" name="captcha" class="form-control" placeholder="Enter valid code" required>
           </div>
           <div class="captcha-img-wrapper">
