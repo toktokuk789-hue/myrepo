@@ -42,25 +42,26 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 app.use(session({
-  secret: 'pakvisa-secret-key-123',
+  secret: process.env.SESSION_SECRET || 'pakvisa-default-secret-2026',
   resave: false,
   saveUninitialized: true
 }));
 
-// Use memory storage for photos to convert them to Base64 (Atlas storage)
-const storage = multer.memoryStorage();
-const upload = multer({ storage });
+const Visa = mongoose.model('Visa', visaSchema);
+
+mongoose.connection.on('connected', () => console.log('✅ MongoDB Cloud Connected'));
+mongoose.connection.on('error', (err) => console.error('❌ MongoDB Error:', err));
 
 function buildMRZ(d) {
-  const surname = (d.surname || '').toUpperCase().replace(/\s+/g, '<');
-  const given = (d.givenNames || '').toUpperCase().replace(/\s+/g, '<');
+  const surname = (d.surname || '').toUpperCase().replace(/[\s-]/g, '<');
+  const given = (d.givenNames || '').toUpperCase().replace(/[\s-]/g, '<');
   const line1 = ('V<PAK' + surname + '<<' + given).padEnd(44, '<').slice(0, 44);
+  
   const dob = (d.dob || '').replace(/-/g, '').slice(2);
   const exp = (d.visaEndDate || '').replace(/-/g, '').slice(2);
-  const nat = (d.nationality || '').slice(0, 3).toUpperCase().padEnd(3, '<');
-  const ref = (d.visaRefNumber || '').slice(0, 9).padEnd(9, '0');
-  const pass = (d.passportNumber || '').toUpperCase().padEnd(9, '<').slice(0, 9);
-  const line2 = (ref + '<' + nat + dob + 'M' + exp + pass + '<<<<<<<<<<<<<<<<').slice(0, 44);
+  const line2_raw = (d.passportNumber || '').toUpperCase().padEnd(9, '<') + 
+                    '<PAK' + dob + '<<<<<<' + exp;
+  const line2 = line2_raw.padEnd(44, '<').slice(0, 44);
   return { line1, line2 };
 }
 
@@ -330,82 +331,96 @@ app.get('/admin-panel', requireAuth, (req, res) => {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PakVisa Grant Notice Generator</title>
   <link rel="icon" type="image/png" href="/pakistan-crest.png">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
   <style>
+    :root { --primary: #0c3823; --secondary: #1a5c38; --bg: #f4f6f8; }
     * { box-sizing: border-box; }
-    body { background-color: #0c3823; font-family: Arial, sans-serif; margin: 0; padding: 40px 20px; }
-    .container { max-width: 800px; margin: 0 auto; background: #fff; padding: 30px 35px; border-radius: 6px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
-    h1 { font-family: Georgia, serif; color: #1a5c38; font-size: 1.4rem; margin: 0; }
-    .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #1a5c38; padding-bottom: 15px; margin-bottom: 25px; }
-    .header-icons { display: flex; align-items: center; gap: 15px; }
+    body { background-color: var(--primary); font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 40px 20px; }
+    .container { max-width: 900px; margin: 0 auto; background: #fff; padding: 40px; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+    .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--secondary); padding-bottom: 20px; margin-bottom: 30px; }
+    .header-icons { display: flex; align-items: center; gap: 20px; }
     .header img { height: 60px; width: auto; object-fit: contain; }
-    .header .crest { height: 75px; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .header .crest { height: 85px; }
+    h1 { font-family: Georgia, serif; color: var(--secondary); font-size: 1.6rem; margin: 0; }
+    
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
     .full-width { grid-column: span 2; }
     .form-group { display: flex; flex-direction: column; }
-    label { font-weight: bold; margin-bottom: 5px; color: #333; font-size: 0.88rem; }
-    input, select { padding: 9px 10px; border: 1px solid #ccc; border-radius: 4px; font-family: Arial, sans-serif; font-size: 0.95rem; }
-    input:focus, select:focus { outline: none; border-color: #1a5c38; }
-    .submit-btn { grid-column: span 2; background-color: #1a5c38; color: white; border: none; padding: 13px; font-size: 1.05rem; border-radius: 4px; cursor: pointer; margin-top: 10px; font-weight: bold; }
+    label { font-weight: bold; margin-bottom: 8px; color: #444; font-size: 0.9rem; display: flex; align-items: center; }
+    label i { margin-right: 8px; color: var(--secondary); width: 16px; text-align: center; }
+    
+    input, select { padding: 12px 15px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem; transition: border 0.3s; }
+    input:focus, select:focus { outline: none; border-color: var(--secondary); box-shadow: 0 0 0 3px rgba(26, 92, 56, 0.1); }
+    
+    .submit-btn { grid-column: span 2; background-color: var(--secondary); color: white; border: none; padding: 16px; font-size: 1.1rem; border-radius: 6px; cursor: pointer; margin-top: 15px; font-weight: bold; transition: background 0.3s; }
     .submit-btn:hover { background-color: #124528; }
+    
+    .success-msg { background: #dcfce7; color: #166534; padding: 15px; border-radius: 6px; margin-bottom: 25px; border: 1px solid #bbf7d0; display: flex; align-items: center; font-weight: 500; }
+    .success-msg i { margin-right: 12px; font-size: 1.2rem; }
+    
     @media (max-width: 600px) {
       .grid { grid-template-columns: 1fr; }
       .full-width, .submit-btn { grid-column: 1; }
+      .container { padding: 25px 20px; }
+      .header { flex-direction: column; text-align: center; gap: 15px; }
     }
   </style>
 </head>
 <body>
   <div class="container">
+    ${req.query.success ? `<div class="success-msg"><i class="fa-solid fa-circle-check"></i> Visa Grant Notice generated successfully and saved to MongoDB Atlas.</div>` : ''}
     <div class="header">
       <div class="header-icons">
         <img src="/pakistan-crest.png" alt="Crest" class="crest">
         <img src="/pakvisa-logo.png" alt="PakVisa Logo">
       </div>
-      <h1>PakVisa Grant Notice Generator</h1>
+      <h1>Grant Notice Generator</h1>
     </div>
     <form action="/generate" method="POST" enctype="multipart/form-data" class="grid">
-      <div class="form-group"><label>Surname</label><input type="text" name="surname" required></div>
-      <div class="form-group"><label>Given Names</label><input type="text" name="givenNames" required></div>
-      <div class="form-group"><label>Date of Birth</label><input type="date" name="dob" required></div>
-      <div class="form-group"><label>Nationality</label><input type="text" name="nationality" required></div>
-      <div class="form-group"><label>Passport Number</label><input type="text" name="passportNumber" required></div>
-      <div class="form-group"><label>Travel Document Country</label><input type="text" name="travelDocCountry" required></div>
-      <div class="form-group"><label>Visa Reference Number</label><input type="text" name="visaRefNumber" required></div>
-      <div class="form-group"><label>Application Date</label><input type="date" name="applicationDate" required></div>
+      <div class="form-group"><label><i class="fa-solid fa-user"></i> Surname</label><input type="text" name="surname" placeholder="e.g. KHAN" required></div>
+      <div class="form-group"><label><i class="fa-solid fa-user-tag"></i> Given Names</label><input type="text" name="givenNames" placeholder="e.g. MOHAMMED ALI" required></div>
+      <div class="form-group"><label><i class="fa-solid fa-calendar-day"></i> Date of Birth</label><input type="date" name="dob" required></div>
+      <div class="form-group"><label><i class="fa-solid fa-flag"></i> Nationality</label><input type="text" name="nationality" placeholder="PAKISTAN" required></div>
+      <div class="form-group"><label><i class="fa-solid fa-passport"></i> Passport Number</label><input type="text" name="passportNumber" placeholder="P12345678" required></div>
+      <div class="form-group"><label><i class="fa-solid fa-earth-asia"></i> Travel Document Country</label><input type="text" name="travelDocCountry" placeholder="PAKISTAN" required></div>
+      <div class="form-group"><label><i class="fa-solid fa-file-invoice"></i> Visa Reference Number</label><input type="text" name="visaRefNumber" placeholder="ABC-12345678" required></div>
+      <div class="form-group"><label><i class="fa-solid fa-calendar-plus"></i> Application Date</label><input type="date" name="applicationDate" required></div>
       <div class="form-group">
-        <label>Visa Category</label>
+        <label><i class="fa-solid fa-list-ul"></i> Visa Category</label>
         <select name="visaCategory" required>
           <option>Tourist/Visit</option><option>Business</option><option>Student</option>
           <option>Work</option><option>Transit</option><option>Official</option>
         </select>
       </div>
       <div class="form-group">
-        <label>Visa Sub Category</label>
+        <label><i class="fa-solid fa-tags"></i> Visa Sub Category</label>
         <select name="visaSubCategory" required>
           <option>Individual (less Than 3 Months)</option><option>Individual (3 to 12 Months)</option>
           <option>Family Visit</option><option>Group Visit</option>
         </select>
       </div>
       <div class="form-group">
-        <label>Application Type</label>
+        <label><i class="fa-solid fa-file-circle-check"></i> Application Type</label>
         <select name="applicationType" required>
           <option>Entry</option><option>Extension</option><option>Re-entry</option>
         </select>
       </div>
       <div class="form-group">
-        <label>Stay Facility</label>
+        <label><i class="fa-solid fa-plane-arrival"></i> Stay Facility</label>
         <select name="stayFacility" required>
           <option>Multiple Entry - Upto 1 Year</option><option>Single Entry</option><option>Double Entry</option>
         </select>
       </div>
-      <div class="form-group"><label>Visa Grant Date</label><input type="date" name="visaGrantDate" required></div>
-      <div class="form-group"><label>Visa Start Date</label><input type="date" name="visaStartDate" required></div>
-      <div class="form-group"><label>Visa End Date</label><input type="date" name="visaEndDate" required></div>
-      <div class="form-group"><label>Visa Duration (days)</label><input type="number" name="visaDuration" required></div>
-      <div class="form-group full-width"><label>Photo Upload</label><input type="file" name="photo" accept="image/*" required></div>
-      <button type="submit" class="submit-btn">Generate Visa Notice</button>
+      <div class="form-group"><label><i class="fa-solid fa-calendar-check"></i> Visa Grant Date</label><input type="date" name="visaGrantDate" required></div>
+      <div class="form-group"><label><i class="fa-solid fa-calendar-day"></i> Visa Start Date</label><input type="date" name="visaStartDate" required></div>
+      <div class="form-group"><label><i class="fa-solid fa-calendar-xmark"></i> Visa End Date</label><input type="date" name="visaEndDate" required></div>
+      <div class="form-group"><label><i class="fa-solid fa-clock"></i> Visa Duration (days)</label><input type="number" name="visaDuration" placeholder="e.g. 60" required></div>
+      <div class="form-group full-width"><label><i class="fa-solid fa-camera"></i> Applicant Photo</label><input type="file" name="photo" accept="image/*" required></div>
+      <button type="submit" class="submit-btn"><i class="fa-solid fa-wand-magic-sparkles"></i> Generate Official Visa Notice</button>
     </form>
   </div>
 </body>
+</html>`);
 </html>`);
 });
 
@@ -439,6 +454,8 @@ app.post('/generate', requireAuth, upload.single('photo'), async (req, res) => {
     }
     
     d = visaData.toObject();
+    res.redirect('/admin-panel?success=true');
+  } catch (err) {
 
     // Simplified QR URL to make the QR code scan faster (less dense)
     const qrParams = new URLSearchParams({ 
@@ -538,6 +555,9 @@ app.post('/generate', requireAuth, upload.single('photo'), async (req, res) => {
   </div>
 
   <div class="page">
+    <!-- WATERMARK -->
+    <img src="/pakistan-crest.png" class="watermark" alt="Watermark" style="position: absolute; top: 38%; left: 22%; width: 55%; opacity: 0.08; pointer-events: none;">
+    
     <div class="doc-header">
       <div class="doc-header-left">
         <img src="/pakistan-crest.png" alt="Crest" class="crest-main">
