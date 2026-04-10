@@ -431,44 +431,25 @@ app.get('/admin-panel', requireAuth, (req, res) => {
 app.post('/generate', requireAuth, upload.single('photo'), async (req, res) => {
   try {
     let d = req.body;
-    
-    // Convert photo to Base64 for permanent MongoDB storage
     if (req.file) {
       const b64 = req.file.buffer.toString('base64');
       const mimetype = req.file.mimetype;
       d.photo = `data:${mimetype};base64,${b64}`;
     }
 
-    // Save or update in MongoDB
-    let visaData = await Visa.findOne({ 
-      visaRefNumber: d.visaRefNumber, 
-      passportNumber: d.passportNumber 
-    });
-
+    let visaData = await Visa.findOne({ visaRefNumber: d.visaRefNumber, passportNumber: d.passportNumber });
     if (visaData) {
-      // Update existing record with new photo if provided
       if (d.photo) visaData.photo = d.photo;
       await visaData.save();
     } else {
-      // Create new record
       visaData = await Visa.create(d);
     }
     
     d = visaData.toObject();
-    res.redirect('/admin-panel?success=true');
-  } catch (err) {
-
-    // Simplified QR URL to make the QR code scan faster (less dense)
-    const qrParams = new URLSearchParams({ 
-      ref: d.visaRefNumber, 
-      pass: d.passportNumber 
-    });
-    
-    // Determine the base URL (Prioritize Render's automatic external URL)
-    const baseUrl = process.env.RENDER_EXTERNAL_URL || process.env.BASE_URL || `http://${getLocalIp()}:${req.socket.localPort || 3000}`;
+    const qrParams = new URLSearchParams({ ref: d.visaRefNumber, pass: d.passportNumber });
+    const baseUrl = process.env.RENDER_EXTERNAL_URL || process.env.BASE_URL || `http://${getLocalIp()}:${PORT}`;
     const verifyUrl = `${baseUrl}/verify?${qrParams.toString()}`;
     const qrDataUrl = await QRCode.toDataURL(verifyUrl, { width: 300, margin: 2, errorCorrectionLevel: 'M' });
-
     const mrz = buildMRZ(d);
 
     res.send(`<!DOCTYPE html>
@@ -479,86 +460,49 @@ app.post('/generate', requireAuth, upload.single('photo'), async (req, res) => {
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: Arial, Helvetica, sans-serif; background: #d0d0d0; padding: 20px; color: #222; }
-
     .no-print { text-align: center; margin-bottom: 20px; }
     .no-print a, .no-print button {
       padding: 10px 22px; background: #1a5c38; color: #fff; text-decoration: none;
-      border-radius: 4px; cursor: pointer; border: none; font-size: 0.95rem;
-      margin: 0 6px; display: inline-block;
+      border-radius: 4px; cursor: pointer; border: none; font-size: 0.95rem; margin: 0 6px; display: inline-block;
     }
-    .no-print a:hover, .no-print button:hover { background: #124528; }
-
     .page {
       background: #fff; width: 210mm; min-height: 297mm; margin: 0 auto;
-      padding: 30px 40px 40px; box-shadow: 0 0 12px rgba(0,0,0,0.4);
+      padding: 30px 40px 40px; box-shadow: 0 0 12px rgba(0,0,0,0.4); position: relative;
     }
-
-    /* HEADER */
-    .doc-header {
-      display: flex; justify-content: space-between; align-items: flex-start;
-      padding-bottom: 10px; border-bottom: 3px solid #1a5c38; margin-bottom: 18px;
-    }
+    .doc-header { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 10px; border-bottom: 3px solid #1a5c38; margin-bottom: 18px; }
     .doc-header-left { display: flex; align-items: center; }
     .doc-header-left .crest-main { height: 80px; width: auto; margin-right: 15px; }
     .doc-header-left .logo-main { height: 65px; width: auto; object-fit: contain; margin-right: 15px; }
     .doc-header-left .h-text { font-size: 0.6rem; color: #1a5c38; font-weight: bold; text-transform: uppercase; line-height: 1.5; }
     .doc-header h1 { font-size: 1.3rem; color: #777; text-transform: uppercase; font-weight: bold; letter-spacing: 0.08em; margin-top: 20px; }
-
-    /* PHOTO + QR */
     .photo-qr { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
     .photo-box img { width: 105px; height: 130px; object-fit: cover; border: 1px solid #bbb; display: block; }
     .photo-box .pname { color: #1a5c38; font-weight: bold; font-size: 0.8rem; margin-top: 5px; }
     .qr-box img { width: 105px; height: 105px; }
-
-    /* SECTIONS */
     .stitle { font-weight: bold; color: #1a5c38; font-size: 0.9rem; margin: 14px 0 4px; }
-
     .plain-tbl { width: 100%; font-size: 0.82rem; margin-bottom: 6px; }
     .plain-tbl td { padding: 3px 0; vertical-align: top; }
     .plain-tbl .lb { color: #555; width: 190px; }
-
     .bordered-tbl { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-bottom: 6px; }
     .bordered-tbl th, .bordered-tbl td { border: 1px solid #ccc; padding: 4px 8px; text-align: left; }
     .bordered-tbl th { color: #444; font-weight: normal; width: 180px; }
     .bordered-tbl tr:nth-child(even) { background: #f9f9f9; }
-
-    /* CONDITIONS */
     .cond { border: 1px solid #bbb; padding: 8px 12px; font-size: 0.68rem; margin-top: 8px; color: #333; }
     .cond h4 { font-size: 0.72rem; font-weight: bold; text-transform: uppercase; margin-bottom: 4px; }
-    .cond p { margin: 0 0 4px; line-height: 1.45; }
-    .cond ul { margin: 0; padding-left: 18px; }
-    .cond li { margin-bottom: 1px; list-style-type: disc; }
-
-    /* MRZ */
-    .mrz {
-      text-align: center; margin-top: 22px; padding: 10px 0;
-      font-family: 'Courier New', Courier, monospace; font-size: 0.82rem;
-      letter-spacing: 0.12em; color: #333; line-height: 1.9;
-    }
-
-    /* FOOTER */
+    .mrz { text-align: center; margin-top: 22px; padding: 10px 0; font-family: monospace; font-size: 0.82rem; letter-spacing: 0.12em; color: #333; line-height: 1.9; }
     .doc-footer { margin-top: 18px; display: flex; align-items: center; }
     .doc-footer img { height: 48px; margin-right: 10px; }
     .doc-footer .ft { font-size: 0.58rem; color: #1a5c38; font-weight: bold; text-transform: uppercase; line-height: 1.5; }
-    .doc-footer .fdate { color: #333; font-weight: normal; font-size: 0.78rem; margin-top: 2px; }
-
-    @media print {
-      body { background: #fff; padding: 0; }
-      .page { box-shadow: none; margin: 0; padding: 15px 20px; width: 100%; min-height: auto; }
-      .no-print { display: none !important; }
-    }
+    @media print { body { background: #fff; padding: 0; } .page { box-shadow: none; margin: 0; padding: 15px 20px; width: 100%; } .no-print { display: none !important; } }
   </style>
 </head>
 <body>
   <div class="no-print">
-    <a href="/">&larr; New Application</a>
-    <button onclick="window.print()">&#128424; Print / Save PDF</button>
+    <a href="/admin-panel">&larr; Back to Dashboard</a>
+    <button onclick="window.print()">Print / Save PDF</button>
   </div>
-
   <div class="page">
-    <!-- WATERMARK -->
-    <img src="/pakistan-crest.png" class="watermark" alt="Watermark" style="position: absolute; top: 38%; left: 22%; width: 55%; opacity: 0.08; pointer-events: none;">
-    
+    <img src="/pakistan-crest.png" alt="Watermark" style="position: absolute; top: 38%; left: 22%; width: 55%; opacity: 0.08; pointer-events: none;">
     <div class="doc-header">
       <div class="doc-header-left">
         <img src="/pakistan-crest.png" alt="Crest" class="crest-main">
@@ -567,23 +511,15 @@ app.post('/generate', requireAuth, upload.single('photo'), async (req, res) => {
       </div>
       <h1>VISA GRANT NOTICE</h1>
     </div>
-
     <div class="photo-qr">
-      <div class="photo-box">
-        <img src="${d.photo || ''}" alt="Photo">
-        <div class="pname">${d.surname} ${d.givenNames}</div>
-      </div>
-      <div class="qr-box">
-        <img src="${qrDataUrl}" alt="QR">
-      </div>
+      <div class="photo-box"><img src="${d.photo || ''}" alt="Photo"><div class="pname">${d.surname} ${d.givenNames}</div></div>
+      <div class="qr-box"><img src="${qrDataUrl}" alt="QR"></div>
     </div>
-
     <div class="stitle">Application Details</div>
     <table class="plain-tbl">
       <tr><td class="lb">Date of Visa Application</td><td>${formatDate(d.applicationDate)}</td></tr>
       <tr><td class="lb">Visa Reference Number</td><td>${d.visaRefNumber}</td></tr>
     </table>
-
     <div class="stitle">Applicant's Details</div>
     <table class="bordered-tbl">
       <tr><th>Applicant Name</th><td>${d.surname} ${d.givenNames}</td></tr>
@@ -591,7 +527,6 @@ app.post('/generate', requireAuth, upload.single('photo'), async (req, res) => {
       <tr><th>Nationality</th><td>${d.nationality}</td></tr>
       <tr><th>Passport Number</th><td>${d.passportNumber}</td></tr>
     </table>
-
     <div class="stitle">Visa Grant Details</div>
     <table class="bordered-tbl">
       <tr><th>Visa Category</th><td>${d.visaCategory}</td></tr>
@@ -604,11 +539,8 @@ app.post('/generate', requireAuth, upload.single('photo'), async (req, res) => {
       <tr><th>Visa End Date</th><td>${formatDate(d.visaEndDate)}</td></tr>
       <tr><th>Visa Duration</th><td>${d.visaDuration} Day(s)</td></tr>
     </table>
-
     <div class="cond">
       <h4>VISA CONDITIONS AND ENTITLEMENTS</h4>
-      <p>Entry may be made on any date between visa start date &amp; visa end date.</p>
-      <p>This visa is granted based upon information and documents provided by the applicant, hence, any incorrect or misleading information/documents provided may lead to legal consequences including (but not limit to):</p>
       <ul><li>Visa Cancellation</li><li>Detention</li><li>Removal from Pakistan</li></ul>
     </div>
 
