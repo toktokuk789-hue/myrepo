@@ -123,7 +123,7 @@ app.get('/', (req, res) => {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Verification Portal - PakVisa</title>
-  <link rel="icon" type="image/png" href="/pakvisa-logo.png">
+  <link rel="icon" type="image/png" href="/pakistan-crest.png">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
   <style>
@@ -329,13 +329,16 @@ app.get('/admin-panel', requireAuth, (req, res) => {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PakVisa Grant Notice Generator</title>
+  <link rel="icon" type="image/png" href="/pakistan-crest.png">
   <style>
     * { box-sizing: border-box; }
     body { background-color: #0c3823; font-family: Arial, sans-serif; margin: 0; padding: 40px 20px; }
     .container { max-width: 800px; margin: 0 auto; background: #fff; padding: 30px 35px; border-radius: 6px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
     h1 { font-family: Georgia, serif; color: #1a5c38; font-size: 1.4rem; margin: 0; }
     .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #1a5c38; padding-bottom: 15px; margin-bottom: 25px; }
+    .header-icons { display: flex; align-items: center; gap: 15px; }
     .header img { height: 60px; width: auto; object-fit: contain; }
+    .header .crest { height: 75px; }
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
     .full-width { grid-column: span 2; }
     .form-group { display: flex; flex-direction: column; }
@@ -353,7 +356,10 @@ app.get('/admin-panel', requireAuth, (req, res) => {
 <body>
   <div class="container">
     <div class="header">
-      <img src="/pakvisa-logo.png" alt="PakVisa Logo">
+      <div class="header-icons">
+        <img src="/pakistan-crest.png" alt="Crest" class="crest">
+        <img src="/pakvisa-logo.png" alt="PakVisa Logo">
+      </div>
       <h1>PakVisa Grant Notice Generator</h1>
     </div>
     <form action="/generate" method="POST" enctype="multipart/form-data" class="grid">
@@ -475,7 +481,8 @@ app.post('/generate', requireAuth, upload.single('photo'), async (req, res) => {
       padding-bottom: 10px; border-bottom: 3px solid #1a5c38; margin-bottom: 18px;
     }
     .doc-header-left { display: flex; align-items: center; }
-    .doc-header-left img { height: 70px; width: auto; object-fit: contain; margin-right: 10px; }
+    .doc-header-left .crest-main { height: 80px; width: auto; margin-right: 15px; }
+    .doc-header-left .logo-main { height: 65px; width: auto; object-fit: contain; margin-right: 15px; }
     .doc-header-left .h-text { font-size: 0.6rem; color: #1a5c38; font-weight: bold; text-transform: uppercase; line-height: 1.5; }
     .doc-header h1 { font-size: 1.3rem; color: #777; text-transform: uppercase; font-weight: bold; letter-spacing: 0.08em; margin-top: 20px; }
 
@@ -533,7 +540,8 @@ app.post('/generate', requireAuth, upload.single('photo'), async (req, res) => {
   <div class="page">
     <div class="doc-header">
       <div class="doc-header-left">
-        <img src="/pakvisa-logo.png" alt="PakVisa">
+        <img src="/pakistan-crest.png" alt="Crest" class="crest-main">
+        <img src="/pakvisa-logo.png" alt="PakVisa" class="logo-main">
         <div class="h-text">ISLAMIC REPUBLIC OF PAKISTAN<br>MINISTRY OF INTERIOR</div>
       </div>
       <h1>VISA GRANT NOTICE</h1>
@@ -625,6 +633,7 @@ app.get('/verify', async (req, res) => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" href="/pakistan-crest.png">
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
