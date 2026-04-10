@@ -80,8 +80,8 @@ mongoose.connect(process.env.MONGODB_URI)
   .catch(err => console.error('MongoDB Connection Error:', err));
 
 const visaSchema = new mongoose.Schema({
-  visaRefNumber: String,
-  passportNumber: String,
+  visaRefNumber: { type: String, index: true },
+  passportNumber: { type: String, index: true },
   surname: String,
   givenNames: String,
   dob: String,
