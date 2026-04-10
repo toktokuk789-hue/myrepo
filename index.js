@@ -1,11 +1,21 @@
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
+const session = require('express-session');
 const QRCode = require('qrcode');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+
+function generateCaptcha() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Avoid ambiguous chars like 0, O, 1, I
+  let code = '';
+  for (let i = 0; i < 4; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
 
 function getLocalIp() {
   const interfaces = os.networkInterfaces();
@@ -30,6 +40,12 @@ const PORT = process.env.PORT || 3000;
 app.use(express.static('public'));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+
+app.use(session({
+  secret: 'pakvisa-secret-key-123',
+  resave: false,
+  saveUninitialized: true
+}));
 
 // Use memory storage for photos to convert them to Base64 (Atlas storage)
 const storage = multer.memoryStorage();
@@ -97,6 +113,10 @@ function requireAuth(req, res, next) {
 // GET / — PREMIUM VERIFICATION SEARCH UI
 // =============================
 app.get('/', (req, res) => {
+  const captcha = generateCaptcha();
+  req.session.captcha = captcha;
+  const error = req.query.error;
+
   res.send(`<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -213,6 +233,7 @@ app.get('/', (req, res) => {
   <div class="container">
     <div class="verify-card">
       <form action="/verify-search" method="POST">
+        ${error === 'captcha' ? `<div class="error-alert">Invalid CAPTCHA code. Please try again.</div>` : ''}
         <div class="grid-form">
           <div class="form-group">
             <label>Visa Reference Number</label>
@@ -242,11 +263,11 @@ app.get('/', (req, res) => {
         <div class="captcha-container">
           <div class="captcha-box">
             <label style="display:block; font-weight:600; font-size:0.88rem; margin-bottom:8px; color:var(--secondary);">CAPTCHA</label>
-            <input type="text" class="form-control" placeholder="Enter valid code">
+            <input type="text" name="captcha" class="form-control" placeholder="Enter valid code" required>
           </div>
           <div class="captcha-img-wrapper">
-            <div class="fake-captcha">rjm4</div>
-            <span class="reload-btn">Reload Code</span>
+            <div class="fake-captcha">${captcha}</div>
+            <span class="reload-btn" onclick="location.reload()">Reload Code</span>
           </div>
         </div>
 
@@ -270,8 +291,13 @@ app.get('/', (req, res) => {
 });
 
 app.post('/verify-search', async (req, res) => {
-  const { refNum, passportNum } = req.body;
+  const { refNum, passportNum, captcha } = req.body;
   
+  // Validate CAPTCHA
+  if (!captcha || captcha.toUpperCase() !== (req.session.captcha || '').toUpperCase()) {
+    return res.redirect('/?error=captcha');
+  }
+
   try {
     const match = await Visa.findOne({ 
       visaRefNumber: refNum, 
